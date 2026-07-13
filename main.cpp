@@ -1,22 +1,52 @@
+#include "SantaFeFlow.h"
 #include "OrderBook.h"
 #include <iostream>
+#include <random>
+#include <iterator>
 
 int main() {
     OrderBook book;
+    SantaFeFlow flow(2.0, 1.0, 0.5, 95, 105, 1, 50);
+    std::mt19937 gen(std::random_device{}());
 
-    book.addLimitOrder(Order(Side::Buy, 100, 50, 10));
-    book.addLimitOrder(Order(Side::Buy, 99, 30, 11));
-    book.addLimitOrder(Order(Side::Buy, 98, 20, 12));
+    for (int i = 0; i < 20; i++) {
+        Event e = flow.nextEvent();
 
-    for (const auto& p : book.bidDepth()) {
-        std::cout << "Price: " << p.first << ", Cumulative: " << p.second << std::endl;
+        if (e.type == EventType::NewLimitOrder) {
+            Order o(e.side, e.price, e.volume, e.id);
+            book.addLimitOrder(o);
+            std::cout << "Event " << i << ": NewLimitOrder id=" << e.id 
+                       << " side=" << (e.side == Side::Buy ? "Buy" : "Sell")
+                       << " price=" << e.price << " volume=" << e.volume << std::endl;
+
+        } else if (e.type == EventType::NewMarketOrder) {
+            int marketPrice = (e.side == Side::Buy) ? book.bestAsk() : book.bestBid();
+            if (marketPrice != -1) {
+                Order o(e.side, marketPrice, e.volume, e.id);
+                book.processOrder(o);
+                std::cout << "Event " << i << ": NewMarketOrder id=" << e.id 
+                           << " side=" << (e.side == Side::Buy ? "Buy" : "Sell") << std::endl;
+            } else {
+                std::cout << "Event " << i << ": MarketOrder skipped (empty book)" << std::endl;
+            }
+
+        } else if (e.type == EventType::Cancel) {
+            if (!book.orderLocation.empty()) {
+                std::uniform_int_distribution<int> pickDist(0, book.orderLocation.size() - 1);
+                int randomIndex = pickDist(gen);
+
+                auto it = book.orderLocation.begin();
+                std::advance(it, randomIndex);
+                int idToCancel = it->first;
+
+                book.cancelOrder(idToCancel);
+                std::cout << "Event " << i << ": Cancel id=" << idToCancel << std::endl;
+            } else {
+                std::cout << "Event " << i << ": Cancel skipped (no active orders)" << std::endl;
+            }
+        }
     }
 
-    book.addLimitOrder(Order(Side::Sell, 101, 40, 20));
-    book.addLimitOrder(Order(Side::Sell, 102, 25, 21));
-    book.addLimitOrder(Order(Side::Sell, 103, 35, 22));
-
-    for (const auto& p : book.askDepth()) {
-        std::cout << "Price: " << p.first << ", Cumulative: " << p.second << std::endl;
-    }
+    std::cout << "\nFinal state: bestBid=" << book.bestBid() 
+               << ", bestAsk=" << book.bestAsk() << std::endl;
 }
