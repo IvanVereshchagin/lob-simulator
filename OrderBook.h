@@ -3,6 +3,8 @@
 #include <map>
 #include <iterator>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 struct OrderBook{
 
@@ -85,7 +87,7 @@ struct OrderBook{
                     break;
                 }
                 }
-                
+
                orderLocation.erase(it);
             }
 
@@ -199,6 +201,52 @@ struct OrderBook{
         }
 
 
+    }
+
+
+    std::vector<std::pair<int, int>> bidDepth() const {
+
+        std::vector<std::pair<int, int>> result;
+        int cumulative = 0;
+        
+        for ( auto it = bids.rbegin() ; it != bids.rend()  ; ++it) {
+    
+            auto& pricelevelDeque = it->second.orders;
+            
+            int levelVolume = 0;
+            for (const auto& order : pricelevelDeque) {   
+                levelVolume += order.volume;
+            }
+
+            cumulative += levelVolume;
+            result.push_back({it->first, cumulative});
+            
+        }
+        
+        return result;
+    }
+
+
+    std::vector<std::pair<int, int>> askDepth() const {
+        
+        std::vector<std::pair<int, int>> result;
+        int cumulative = 0;
+        
+        for ( auto it = asks.begin() ; it != asks.end()  ; ++it) {
+    
+            auto& pricelevelDeque = it->second.orders;
+            
+            int levelVolume = 0;
+            for (const auto& order : pricelevelDeque) {   
+                levelVolume += order.volume;
+            }
+
+            cumulative += levelVolume;
+            result.push_back({it->first, cumulative});
+            
+        }
+        
+        return result;
     }
 
 };

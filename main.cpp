@@ -4,17 +4,19 @@
 int main() {
     OrderBook book;
 
-    // строим книгу
-    book.addLimitOrder(Order(Side::Sell, 105, 50, 1));
-    book.addLimitOrder(Order(Side::Sell, 106, 30, 2));
-    book.addLimitOrder(Order(Side::Sell, 107, 20, 3));
+    book.addLimitOrder(Order(Side::Buy, 100, 50, 10));
+    book.addLimitOrder(Order(Side::Buy, 99, 30, 11));
+    book.addLimitOrder(Order(Side::Buy, 98, 20, 12));
 
-    std::cout << "Before: bestAsk=" << book.bestAsk() << std::endl;
+    for (const auto& p : book.bidDepth()) {
+        std::cout << "Price: " << p.first << ", Cumulative: " << p.second << std::endl;
+    }
 
-    // buy-заявка на 80 шт по цене 107 — должна съесть уровни 105 и 106 целиком
-    book.processOrder(Order(Side::Buy, 107, 80, 4));
+    book.addLimitOrder(Order(Side::Sell, 101, 40, 20));
+    book.addLimitOrder(Order(Side::Sell, 102, 25, 21));
+    book.addLimitOrder(Order(Side::Sell, 103, 35, 22));
 
-    std::cout << "After: bestAsk=" << book.bestAsk() << std::endl;
-    // ожидаем 107 — уровни 105 и 106 должны исчезнуть
+    for (const auto& p : book.askDepth()) {
+        std::cout << "Price: " << p.first << ", Cumulative: " << p.second << std::endl;
+    }
 }
-
