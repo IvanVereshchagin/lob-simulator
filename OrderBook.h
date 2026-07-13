@@ -2,12 +2,13 @@
 #include "PriceLevel.h"
 #include <map>
 #include <iterator>
-
+#include <unordered_map>
 
 struct OrderBook{
 
     std::map<int, PriceLevel> bids ;
     std::map<int, PriceLevel> asks ;
+    std::unordered_map<int, std::pair<Side, int>> orderLocation;
 
     int bestBid() const {
 
@@ -45,6 +46,55 @@ struct OrderBook{
             asks[ order.price ].orders.push_back( order) ; 
 
         }
+
+        orderLocation[order.id] = {order.side, order.price};
+
+    }
+
+    void cancelOrder( int id){
+
+        auto it = orderLocation.find(id) ; 
+
+        if ( it != orderLocation.end() ) {
+
+            Side order_to_cancel_side = it->second.first ; 
+            int order_to_cancel_price = it->second.second;
+
+            if ( order_to_cancel_side == Side::Buy) {
+
+                auto& targetDeque = bids[order_to_cancel_price].orders;
+
+
+                for (auto deqIt = targetDeque.begin(); deqIt != targetDeque.end(); ++deqIt) {
+                if (deqIt->id == id) {
+                    targetDeque.erase(deqIt);
+                    break;
+                }
+                }
+
+                orderLocation.erase(it); 
+
+            } else if ( ( order_to_cancel_side == Side::Sell)) { 
+
+               auto& targetDeque = asks[order_to_cancel_price].orders;
+
+
+               for (auto deqIt = targetDeque.begin(); deqIt != targetDeque.end(); ++deqIt) {
+                if (deqIt->id == id) {
+                    targetDeque.erase(deqIt);
+                    break;
+                }
+                }
+                
+               orderLocation.erase(it);
+            }
+
+        } else {
+
+
+            return ; 
+        }
+
     }
 
 
