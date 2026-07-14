@@ -1,12 +1,23 @@
-# Скомпилированные бинарники
+# Python
+__pycache__/
+*.pyc
+
+# Скомпилированные бинарники C++
 *.exe
 *.out
 *.o
 *.obj
+*.pyd
+*.so
 
 # Директории сборки (появятся, когда подключишь CMake)
 build/
 cmake-build-*/
+
+# Node / frontend
+node_modules/
+lob-frontend/node_modules/
+lob-frontend/dist/
 
 # IDE-специфичные файлы
 .vscode/

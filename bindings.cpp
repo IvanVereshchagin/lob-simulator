@@ -25,5 +25,22 @@ PYBIND11_MODULE(orderbook_cpp, m) {
         .def("processOrder", &OrderBook::processOrder)
         .def("cancelOrder", &OrderBook::cancelOrder)
         .def("bidDepth", &OrderBook::bidDepth)
-        .def("askDepth", &OrderBook::askDepth);
+        .def("askDepth", &OrderBook::askDepth)
+        .def_readonly("orderLocation", &OrderBook::orderLocation);
+
+    py::enum_<EventType>(m, "EventType")
+    .value("NewLimitOrder", EventType::NewLimitOrder)
+    .value("NewMarketOrder", EventType::NewMarketOrder)
+    .value("Cancel", EventType::Cancel);
+
+    py::class_<Event>(m, "Event")
+        .def_readwrite("type", &Event::type)
+        .def_readwrite("side", &Event::side)
+        .def_readwrite("price", &Event::price)
+        .def_readwrite("volume", &Event::volume)
+        .def_readwrite("id", &Event::id);
+
+    py::class_<SantaFeFlow>(m, "SantaFeFlow")
+        .def(py::init<double, double, double, int, int, int, int>())
+        .def("nextEvent", &SantaFeFlow::nextEvent);
 }
