@@ -73,6 +73,10 @@ struct OrderBook{
                     break;
                 }
                 }
+                
+                if (targetDeque.empty()) {          
+                    bids.erase(order_to_cancel_price);  
+                }
 
                 orderLocation.erase(it); 
 
@@ -88,6 +92,9 @@ struct OrderBook{
                 }
                 }
 
+                if (targetDeque.empty()) {         
+                    asks.erase(order_to_cancel_price);   
+                }
                orderLocation.erase(it);
             }
 
