@@ -3,7 +3,7 @@ import sys
 
 if sys.platform == "win32":
     os.add_dll_directory(r'C:\msys64\mingw64\bin')
-    
+
 import time
 import orderbook_cpp
 from fastapi import FastAPI
@@ -118,7 +118,9 @@ def state():
 def step(n: int = 1):
     t0 = time.perf_counter()
     for _ in range(n):
-        e = flow.nextEvent()
+        # Используем current_params для получения minPrice и maxPrice
+        mid = (book.bestBid() + book.bestAsk()) // 2 if book.bestBid() != -1 and book.bestAsk() != -1 else (current_params.minPrice + current_params.maxPrice) // 2
+        e = flow.nextEvent(mid)
         apply_event(e)
     t1 = time.perf_counter()
 
@@ -130,7 +132,6 @@ def step(n: int = 1):
         "serializationMs": round((t2 - t1) * 1000, 3),
     }
     return result
-
 
 @app.post("/reset")
 def reset():

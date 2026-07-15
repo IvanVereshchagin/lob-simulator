@@ -42,5 +42,5 @@ PYBIND11_MODULE(orderbook_cpp, m) {
 
     py::class_<SantaFeFlow>(m, "SantaFeFlow")
         .def(py::init<double, double, double, int, int, int, int>())
-        .def("nextEvent", &SantaFeFlow::nextEvent);
+        .def("nextEvent", &SantaFeFlow::nextEvent, py::arg("midPrice"));
 }

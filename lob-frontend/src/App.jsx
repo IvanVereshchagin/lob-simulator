@@ -4,6 +4,9 @@ import {
   Area,
   LineChart,
   Line,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -172,6 +175,16 @@ export default function App() {
 
   const chartData = [...bidChartData, ...askChartData];
 
+  // Схематичный график ОТДЕЛЬНЫХ уровней (не кумулятивный объём) —
+  // отсортирован по цене от низкой к высокой, чтобы bid слева, ask справа
+  const volumeDistributionData = [...bidsWithVolume, ...asksSorted]
+    .map((item) => ({
+      price: item.price,
+      volume: item.volume,
+      side: state.bidDepth.some(([p]) => p === item.price) ? "Bid" : "Ask",
+    }))
+    .sort((a, b) => a.price - b.price);
+
   const eventColor = (type) => {
     if (type === "NewLimitOrder") return "#2980b9";
     if (type === "NewMarketOrder") return "#e67e22";
@@ -251,6 +264,7 @@ export default function App() {
       </div>
 
       <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
+        {/* ЛЕВАЯ КОЛОНКА: параметры + order flow */}
         <div style={{ width: "320px", flexShrink: 0 }}>
           <div style={{ marginBottom: "20px", padding: "16px", background: "#f0f0f0", borderRadius: "8px", border: "1px solid #ccc" }}>
             <h3 style={{ marginTop: 0 }}>Параметры потока заявок</h3>
@@ -359,7 +373,7 @@ export default function App() {
               <input
                 type="range"
                 min="1"
-                max="20"
+                max="50"
                 step="1"
                 value={bidLevels}
                 onChange={(e) => setBidLevels(parseInt(e.target.value))}
@@ -370,7 +384,7 @@ export default function App() {
               <input
                 type="range"
                 min="1"
-                max="20"
+                max="50"
                 step="1"
                 value={askLevels}
                 onChange={(e) => setAskLevels(parseInt(e.target.value))}
@@ -405,6 +419,7 @@ export default function App() {
           </div>
         </div>
 
+        {/* ЦЕНТРАЛЬНАЯ КОЛОНКА: mid-price, spread, кумулятивная глубина, распределение объёма */}
         <div style={{ flex: 1, minWidth: "400px" }}>
           <h3 style={{ marginTop: 0, marginBottom: "8px" }}>Mid-price</h3>
           <div style={{ width: "100%", height: 180, marginBottom: "24px" }}>
@@ -456,8 +471,8 @@ export default function App() {
             </ResponsiveContainer>
           </div>
 
-          <h3 style={{ marginTop: 0, marginBottom: "8px" }}>Order Book Depth</h3>
-          <div style={{ width: "100%", height: 350 }}>
+          <h3 style={{ marginTop: 0, marginBottom: "8px" }}>Order Book Depth (кумулятив)</h3>
+          <div style={{ width: "100%", height: 300, marginBottom: "24px" }}>
             <ResponsiveContainer>
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -469,8 +484,26 @@ export default function App() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          <h3 style={{ marginTop: 0, marginBottom: "8px" }}>Объём по уровням (не кумулятив)</h3>
+          <div style={{ width: "100%", height: 250 }}>
+            <ResponsiveContainer>
+              <BarChart data={volumeDistributionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="price" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="volume" isAnimationActive={false}>
+                  {volumeDistributionData.map((entry, idx) => (
+                    <Cell key={idx} fill={entry.side === "Bid" ? "#27ae60" : "#c0392b"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
+        {/* ПРАВАЯ КОЛОНКА: таблица */}
         <div style={{ width: "380px", flexShrink: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px" }}>
             <thead>

@@ -3,7 +3,7 @@
 
 class OrderFlowGenerator {
 public:
-    virtual Event nextEvent() = 0;
+    virtual Event nextEvent(int midPrice) = 0;
     virtual ~OrderFlowGenerator() = default;
 };
 
