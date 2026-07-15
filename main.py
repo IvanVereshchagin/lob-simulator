@@ -22,6 +22,7 @@ app.add_middleware(
 
 
 class FlowParams(BaseModel):
+    modelType: str = "santa_fe"  # "santa_fe" или "hawkes"
     lam: float = 2.0
     mu: float = 1.0
     nu: float = 0.5
@@ -29,6 +30,10 @@ class FlowParams(BaseModel):
     maxPrice: int = 105
     minVolume: int = 1
     maxVolume: int = 50
+    # Hawkes-специфичные параметры
+    phi0: float = 1.0
+    branchingRatio: float = 0.7
+    decayRate: float = 0.5
 
 
 class DepthResponse(BaseModel):
@@ -40,13 +45,24 @@ class DepthResponse(BaseModel):
     serverTiming: dict | None = None
 
 
+def create_flow(params: FlowParams):
+    if params.modelType == "hawkes":
+        return orderbook_cpp.HawkesFlow(
+            params.phi0, params.branchingRatio, params.decayRate,
+            params.minPrice, params.maxPrice,
+            params.minVolume, params.maxVolume
+        )
+    else:
+        return orderbook_cpp.SantaFeFlow(
+            params.lam, params.mu, params.nu,
+            params.minPrice, params.maxPrice,
+            params.minVolume, params.maxVolume
+        )
+
+
 current_params = FlowParams()
 book = orderbook_cpp.OrderBook()
-flow = orderbook_cpp.SantaFeFlow(
-    current_params.lam, current_params.mu, current_params.nu,
-    current_params.minPrice, current_params.maxPrice,
-    current_params.minVolume, current_params.maxVolume
-)
+flow = create_flow(current_params)
 
 recent_events = []
 MAX_EVENTS = 30
@@ -95,14 +111,11 @@ def apply_event(e):
 def update_params(params: FlowParams):
     global flow, current_params
     if params.minPrice >= params.maxPrice or params.minVolume >= params.maxVolume:
-        return current_params  # игнорируем некорректные параметры, не пересоздаём flow
+        return current_params
     current_params = params
-    flow = orderbook_cpp.SantaFeFlow(
-        params.lam, params.mu, params.nu,
-        params.minPrice, params.maxPrice,
-        params.minVolume, params.maxVolume
-    )
+    flow = create_flow(params)
     return params
+
 
 @app.get("/params")
 def get_params():
@@ -118,7 +131,6 @@ def state():
 def step(n: int = 1):
     t0 = time.perf_counter()
     for _ in range(n):
-        # Используем current_params для получения minPrice и maxPrice
         mid = (book.bestBid() + book.bestAsk()) // 2 if book.bestBid() != -1 and book.bestAsk() != -1 else (current_params.minPrice + current_params.maxPrice) // 2
         e = flow.nextEvent(mid)
         apply_event(e)
@@ -132,6 +144,7 @@ def step(n: int = 1):
         "serializationMs": round((t2 - t1) * 1000, 3),
     }
     return result
+
 
 @app.post("/reset")
 def reset():

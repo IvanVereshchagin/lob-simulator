@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include "OrderBook.h"
 #include "SantaFeFlow.h"
+#include "HawkesFlow.h"
 
 namespace py = pybind11;
 
@@ -43,4 +44,10 @@ PYBIND11_MODULE(orderbook_cpp, m) {
     py::class_<SantaFeFlow>(m, "SantaFeFlow")
         .def(py::init<double, double, double, int, int, int, int>())
         .def("nextEvent", &SantaFeFlow::nextEvent, py::arg("midPrice"));
+
+    py::class_<HawkesFlow>(m, "HawkesFlow")
+        .def(py::init<double, double, double, int, int, int, int>())
+        .def("nextEvent", &HawkesFlow::nextEvent);
+
+    
 }

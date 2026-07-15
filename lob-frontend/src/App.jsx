@@ -26,9 +26,13 @@ export default function App() {
     recentEvents: [],
   });
   const [isRunning, setIsRunning] = useState(false);
+  const [modelType, setModelType] = useState("santa_fe");
   const [lam, setLam] = useState(2.0);
   const [mu, setMu] = useState(1.0);
   const [nu, setNu] = useState(0.5);
+  const [phi0, setPhi0] = useState(1.0);
+  const [branchingRatio, setBranchingRatio] = useState(0.7);
+  const [decayRate, setDecayRate] = useState(0.5);
   const [minPrice, setMinPrice] = useState(95);
   const [maxPrice, setMaxPrice] = useState(105);
   const [minVolume, setMinVolume] = useState(1);
@@ -104,19 +108,26 @@ export default function App() {
     setAvgLatency(null);
   };
 
-  const sendParams = async (newLam, newMu, newNu, newMinPrice, newMaxPrice, newMinVolume, newMaxVolume) => {
+
+  const sendParams = async (overrides = {}) => {
+    const payload = {
+      modelType,
+      lam,
+      mu,
+      nu,
+      minPrice,
+      maxPrice,
+      minVolume,
+      maxVolume,
+      phi0,
+      branchingRatio,
+      decayRate,
+      ...overrides,
+    };
     await fetch(`${API_URL}/params`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lam: newLam,
-        mu: newMu,
-        nu: newNu,
-        minPrice: newMinPrice,
-        maxPrice: newMaxPrice,
-        minVolume: newMinVolume,
-        maxVolume: newMaxVolume,
-      }),
+      body: JSON.stringify(payload),
     });
   };
 
@@ -175,8 +186,6 @@ export default function App() {
 
   const chartData = [...bidChartData, ...askChartData];
 
-  // Схематичный график ОТДЕЛЬНЫХ уровней (не кумулятивный объём) —
-  // отсортирован по цене от низкой к высокой, чтобы bid слева, ask справа
   const volumeDistributionData = [...bidsWithVolume, ...asksSorted]
     .map((item) => ({
       price: item.price,
@@ -205,7 +214,9 @@ export default function App() {
   return (
     <div style={{ fontFamily: "monospace", padding: "24px", width: "100%", boxSizing: "border-box" }}>
       <h1 style={{ marginBottom: "4px" }}>LOB Simulator</h1>
-      <p style={{ color: "#888", marginTop: 0 }}>Santa Fe order flow model</p>
+      <p style={{ color: "#888", marginTop: 0 }}>
+        {modelType === "hawkes" ? "Hawkes self-exciting model" : "Santa Fe order flow model"}
+      </p>
 
       <div style={{ display: "flex", gap: "12px", marginBottom: "8px", alignItems: "center", flexWrap: "wrap" }}>
         <button
@@ -267,46 +278,118 @@ export default function App() {
         {/* ЛЕВАЯ КОЛОНКА: параметры + order flow */}
         <div style={{ width: "320px", flexShrink: 0 }}>
           <div style={{ marginBottom: "20px", padding: "16px", background: "#f0f0f0", borderRadius: "8px", border: "1px solid #ccc" }}>
-            <h3 style={{ marginTop: 0 }}>Параметры потока заявок</h3>
+            <h3 style={{ marginTop: 0 }}>Модель потока заявок</h3>
 
-            <div style={{ marginBottom: "12px" }}>
-              <label>λ (лимитные заявки): <strong>{lam.toFixed(2)}</strong></label>
-              <input
-                type="range" min="0.1" max="5" step="0.1" value={lam}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  setLam(v);
-                  sendParams(v, mu, nu, minPrice, maxPrice, minVolume, maxVolume);
-                }}
-                style={{ width: "100%" }}
-              />
+            <div style={{ marginBottom: "16px", display: "flex", gap: "16px" }}>
+              <label>
+                <input
+                  type="radio"
+                  checked={modelType === "santa_fe"}
+                  onChange={() => {
+                    setModelType("santa_fe");
+                    sendParams({ modelType: "santa_fe" });
+                  }}
+                />{" "}
+                Santa Fe (Poisson)
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  checked={modelType === "hawkes"}
+                  onChange={() => {
+                    setModelType("hawkes");
+                    sendParams({ modelType: "hawkes" });
+                  }}
+                />{" "}
+                Hawkes
+              </label>
             </div>
 
-            <div style={{ marginBottom: "12px" }}>
-              <label>μ (маркет-ордера): <strong>{mu.toFixed(2)}</strong></label>
-              <input
-                type="range" min="0.1" max="5" step="0.1" value={mu}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  setMu(v);
-                  sendParams(lam, v, nu, minPrice, maxPrice, minVolume, maxVolume);
-                }}
-                style={{ width: "100%" }}
-              />
-            </div>
+            {modelType === "santa_fe" && (
+              <>
+                <div style={{ marginBottom: "12px" }}>
+                  <label>λ (лимитные заявки): <strong>{lam.toFixed(2)}</strong></label>
+                  <input
+                    type="range" min="0.1" max="5" step="0.1" value={lam}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setLam(v);
+                      sendParams({ lam: v });
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label>ν (отмены): <strong>{nu.toFixed(2)}</strong></label>
-              <input
-                type="range" min="0.1" max="5" step="0.1" value={nu}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  setNu(v);
-                  sendParams(lam, mu, v, minPrice, maxPrice, minVolume, maxVolume);
-                }}
-                style={{ width: "100%" }}
-              />
-            </div>
+                <div style={{ marginBottom: "12px" }}>
+                  <label>μ (маркет-ордера): <strong>{mu.toFixed(2)}</strong></label>
+                  <input
+                    type="range" min="0.1" max="5" step="0.1" value={mu}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setMu(v);
+                      sendParams({ mu: v });
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "16px" }}>
+                  <label>ν (отмены): <strong>{nu.toFixed(2)}</strong></label>
+                  <input
+                    type="range" min="0.1" max="5" step="0.1" value={nu}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setNu(v);
+                      sendParams({ nu: v });
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              </>
+            )}
+
+            {modelType === "hawkes" && (
+              <div style={{ marginBottom: "16px", padding: "10px", background: "#eef2fb", borderRadius: "6px" }}>
+                <div style={{ marginBottom: "12px" }}>
+                  <label>φ₀ (базовая интенсивность): <strong>{phi0.toFixed(2)}</strong></label>
+                  <input
+                    type="range" min="0.1" max="5" step="0.1" value={phi0}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setPhi0(v);
+                      sendParams({ phi0: v });
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "12px" }}>
+                  <label>g (branching ratio): <strong>{branchingRatio.toFixed(2)}</strong></label>
+                  <input
+                    type="range" min="0.05" max="0.95" step="0.05" value={branchingRatio}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setBranchingRatio(v);
+                      sendParams({ branchingRatio: v });
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div>
+                  <label>ω (decay rate): <strong>{decayRate.toFixed(2)}</strong></label>
+                  <input
+                    type="range" min="0.1" max="5" step="0.1" value={decayRate}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setDecayRate(v);
+                      sendParams({ decayRate: v });
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: "12px" }}>
               <label>Диапазон цен: {minPrice} — {maxPrice}</label>
@@ -318,7 +401,7 @@ export default function App() {
                     const v = parseInt(e.target.value);
                     if (!isNaN(v)) {
                       setMinPrice(v);
-                      sendParams(lam, mu, nu, v, maxPrice, minVolume, maxVolume);
+                      sendParams({ minPrice: v });
                     }
                   }}
                   style={{ width: "80px" }}
@@ -330,7 +413,7 @@ export default function App() {
                     const v = parseInt(e.target.value);
                     if (!isNaN(v)) {
                       setMaxPrice(v);
-                      sendParams(lam, mu, nu, minPrice, v, minVolume, maxVolume);
+                      sendParams({ maxPrice: v });
                     }
                   }}
                   style={{ width: "80px" }}
@@ -348,7 +431,7 @@ export default function App() {
                     const v = parseInt(e.target.value);
                     if (!isNaN(v)) {
                       setMinVolume(v);
-                      sendParams(lam, mu, nu, minPrice, maxPrice, v, maxVolume);
+                      sendParams({ minVolume: v });
                     }
                   }}
                   style={{ width: "80px" }}
@@ -360,7 +443,7 @@ export default function App() {
                     const v = parseInt(e.target.value);
                     if (!isNaN(v)) {
                       setMaxVolume(v);
-                      sendParams(lam, mu, nu, minPrice, maxPrice, minVolume, v);
+                      sendParams({ maxVolume: v });
                     }
                   }}
                   style={{ width: "80px" }}
@@ -419,7 +502,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ЦЕНТРАЛЬНАЯ КОЛОНКА: mid-price, spread, кумулятивная глубина, распределение объёма */}
+        {/* ЦЕНТРАЛЬНАЯ КОЛОНКА */}
         <div style={{ flex: 1, minWidth: "400px" }}>
           <h3 style={{ marginTop: 0, marginBottom: "8px" }}>Mid-price</h3>
           <div style={{ width: "100%", height: 180, marginBottom: "24px" }}>
