@@ -6,9 +6,7 @@
 
 Это не production-система для реальной торговли, а исследовательский и обучающий проект: engine книги заявок написан на C++ ради производительности, а вся логика доступна и настраиваема через веб-интерфейс, чтобы можно было визуально наблюдать, как разные параметры рынка влияют на цену, ликвидность и поведение книги заявок.
 
-<img width="500" height="550" alt="image" src="https://github.com/user-attachments/assets/48cf923b-243c-429e-973b-4e8a9fa98d1c" />
-
-<img width="500" height="345" alt="image" src="https://github.com/user-attachments/assets/344ceddf-e791-4698-b61f-69f2b3f41d74" />
+<img width="1000" height="1314" alt="vsdc-sr-2026-07-20-21-10-11-_online-video-cutter com_" src="https://github.com/user-attachments/assets/1c365134-aa87-4425-ac98-8a9aef37a758" />
 
 ## ⚙️ Архитектура
 
@@ -75,10 +73,11 @@ REST API поверх pybind11-модуля:
 - Возможность отправить крупную заявку, которая исполняется постепенно, маленькими частями, вперемешку с обычным потоком
 - Автоматический расчёт цены до и после исполнения, построение графика движения цены во время исполнения
 - Отдельный скрипт для массового тестирования: подтверждена корневая зависимость влияния объёма на цену (square-root law) с R² = 0.996 на 440 симуляциях, а также найдена граница, где эта зависимость перестаёт работать — когда объём заявки становится сопоставим с объёмом всей книги
-- 
+  
 <img width="221" height="175" alt="vsdc-sr-2026-07-20-20-46-22" src="https://github.com/user-attachments/assets/a4876a42-ad27-4838-97f8-9ca32467300f" />
 <img width="217" height="175" alt="vsdc-sr-2026-07-20-20-42-49" src="https://github.com/user-attachments/assets/c3cbbd41-dd86-437e-9ff0-e7f9e97a3360" />
 <img width="217" height="175" alt="vsdc-sr-2026-07-20-20-50-54-_online-video-cutter com_ (1)" src="https://github.com/user-attachments/assets/0de8b254-d7ff-4179-9baa-0023ee6f1795" />
+<img width="500" height="345" alt="image" src="https://github.com/user-attachments/assets/344ceddf-e791-4698-b61f-69f2b3f41d74" />
 
 
 
@@ -90,6 +89,11 @@ REST API поверх pybind11-модуля:
 - График автокорреляции знака сделок - показывает, насколько предсказуемо направление следующей сделки
 - Разбивка задержки запроса по этапам: вычисления, сериализация данных, сеть
 - Все параметры моделей меняются слайдерами прямо на дашборде, без перезапуска
+
+<img width="200" height="315" alt="vsdc-sr-2026-07-20-21-01-54-_online-video-cutter com_" src="https://github.com/user-attachments/assets/add34753-4bd8-4493-b8d8-649378bb2bc1" />
+<img width="220" height="315" alt="vsdc-sr-2026-07-20-21-07-07" src="https://github.com/user-attachments/assets/293b4b1a-c36c-45c4-adab-02e536540fc5" />
+
+  
 
 **Инфраструктура**
 - Python-обёртка над C++ кодом через pybind11
