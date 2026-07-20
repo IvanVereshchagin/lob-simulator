@@ -15,6 +15,8 @@ class HawkesFlow : public OrderFlowGenerator {
 
     int nextId = 1;
     int minPrice, maxPrice;
+    double rho;                          // НОВОЕ: сила памяти знака market orders
+    Side lastMarketSide = Side::Buy;     // НОВОЕ
 
     std::mt19937 gen;
     std::exponential_distribution<double> unitExpDist; 
@@ -26,10 +28,11 @@ class HawkesFlow : public OrderFlowGenerator {
 
 public:
     HawkesFlow(double phi0, double branchingRatio, double decayRate,
-               int minP, int maxP, int minVolume, int maxVolume)
+               int minP, int maxP, int minVolume, int maxVolume, double rhoParam = 0.0)
         : baseIntensity(phi0), g(branchingRatio), omega(decayRate),
           currentIntensity(phi0), lastEventTime(0.0), simulatedTime(0.0),
           minPrice(minP), maxPrice(maxP),
+          rho(rhoParam),                 // НОВОЕ
           gen(std::random_device{}()),
           unitExpDist(1.0),
           uniformDist(0.0, 1.0),
@@ -39,29 +42,31 @@ public:
           eventTypeDist(0, 2)  
     {}
 
+    Side nextMarketSide() {              // НОВОЕ: DAR(1) логика
+        if (uniformDist(gen) < rho) {
+            return lastMarketSide;
+        }
+        lastMarketSide = sideDist(gen) ? Side::Buy : Side::Sell;
+        return lastMarketSide;
+    }
+
     Event nextEvent(int midPrice) override {
-        
         double phiMax = currentIntensity;
 
         while (true) {
-          
             double waitTime = unitExpDist(gen) / phiMax;
             simulatedTime += waitTime;
 
-            
             double elapsed = simulatedTime - lastEventTime;
             double actualIntensity = baseIntensity + (phiMax - baseIntensity) * std::exp(-omega * elapsed);
 
-         
             double u = uniformDist(gen);
             if (u <= actualIntensity / phiMax) {
-                
                 lastEventTime = simulatedTime;
-                currentIntensity = actualIntensity + g * omega;  
+                currentIntensity = actualIntensity + g * omega;
 
                 return generateEventDetails(midPrice);
             }
-           
         }
     }
 
@@ -76,7 +81,8 @@ private:
             price = std::max(minPrice, std::min(maxPrice, price));
             return Event{EventType::NewLimitOrder, randomSide, price, volumeDist(gen), nextId++};
         } else if (typeRoll == 1) {
-            return Event{EventType::NewMarketOrder, randomSide, 0, volumeDist(gen), nextId++};
+            Side marketSide = nextMarketSide();   // ИЗМЕНЕНО: DAR вместо randomSide
+            return Event{EventType::NewMarketOrder, marketSide, 0, volumeDist(gen), nextId++};
         } else {
             return Event{EventType::Cancel, randomSide, 0, 0, 0};
         }

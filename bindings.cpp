@@ -3,6 +3,7 @@
 #include "OrderBook.h"
 #include "SantaFeFlow.h"
 #include "HawkesFlow.h"
+#include "Metaorder.h"
 
 namespace py = pybind11;
 
@@ -42,12 +43,27 @@ PYBIND11_MODULE(orderbook_cpp, m) {
         .def_readwrite("id", &Event::id);
 
     py::class_<SantaFeFlow>(m, "SantaFeFlow")
-        .def(py::init<double, double, double, int, int, int, int>())
+        .def(py::init<double, double, double, int, int, int, int, double>(),
+            py::arg("l"), py::arg("m"), py::arg("n"),
+            py::arg("minP"), py::arg("maxP"),
+            py::arg("minVolume"), py::arg("maxVolume"),
+            py::arg("rho") = 0.0)
         .def("nextEvent", &SantaFeFlow::nextEvent, py::arg("midPrice"));
 
     py::class_<HawkesFlow>(m, "HawkesFlow")
-        .def(py::init<double, double, double, int, int, int, int>())
-        .def("nextEvent", &HawkesFlow::nextEvent);
+        .def(py::init<double, double, double, int, int, int, int, double>(),
+            py::arg("phi0"), py::arg("branchingRatio"), py::arg("decayRate"),
+            py::arg("minP"), py::arg("maxP"),
+            py::arg("minVolume"), py::arg("maxVolume"),
+            py::arg("rho") = 0.0)
+        .def("nextEvent", &HawkesFlow::nextEvent, py::arg("midPrice"));
+
+    py::class_<MetaorderExecutor>(m, "MetaorderExecutor")
+        .def(py::init<Side, int, int, int>())
+        .def("isFinished", &MetaorderExecutor::isFinished)
+        .def("nextChildOrder", &MetaorderExecutor::nextChildOrder)
+        .def("getExecutedSoFar", &MetaorderExecutor::getExecutedSoFar)
+        .def("getTotalChildOrders", &MetaorderExecutor::getTotalChildOrders);
 
     
 }
